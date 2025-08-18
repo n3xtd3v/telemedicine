@@ -152,7 +152,6 @@ export default function MeetingTypeList() {
         handleClick={() => setMeeting("isJoiningMeeting")}
       />
 
-      {/* Scheduled Meeting Modal */}
       <MeetingModal
         isOpen={meeting === "isScheduledMeeting"}
         onClose={() => setMeeting(undefined)}
@@ -248,7 +247,6 @@ export default function MeetingTypeList() {
         </form>
       </MeetingModal>
 
-      {/* Instant Meeting Modal */}
       <MeetingModal
         isOpen={meeting === "isInstantMeeting"}
         onClose={() => setMeeting(undefined)}
@@ -260,7 +258,6 @@ export default function MeetingTypeList() {
         }}
       />
 
-      {/* Join Meeting Modal */}
       <MeetingModal
         isOpen={meeting === "isJoiningMeeting"}
         onClose={() => setMeeting(undefined)}
