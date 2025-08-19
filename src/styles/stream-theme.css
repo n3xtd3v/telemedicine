@@ -1,4 +1,4 @@
-/* .str-video {
+.str-video {
   --str-video__primary-color: hsl(var(--primary));
   --str-video__secondary-color: hsl(var(--secondary));
 }
@@ -6,4 +6,4 @@
 html.dark .str-video {
   --str-video__primary-color: hsl(var(--primary));
   --str-video__secondary-color: hsl(var(--secondary));
-} */
+}

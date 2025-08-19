@@ -22,6 +22,7 @@ import { useState } from "react";
 import EndCallButton from "./end-call-button";
 import Loader from "@/components/loader";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 type CallLayoutType = "grid" | "speaker-left" | "speaker-right";
 
@@ -33,6 +34,7 @@ export default function MeetingRoom() {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
   const router = useRouter();
+  const { user } = useUser();
 
   const CallLayout = () => {
     switch (layout) {

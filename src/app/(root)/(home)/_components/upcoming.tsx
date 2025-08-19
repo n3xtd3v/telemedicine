@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 export default function Upcoming() {
   const { nextUpcoming, isLoading } = useGetCalls();
-  const [now, setNow] = useState(new Date());
+  const [, setNow] = useState(new Date());
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);

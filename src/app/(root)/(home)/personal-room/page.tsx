@@ -1,7 +1,11 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useStreamVideoClient, StreamCall } from "@stream-io/video-react-sdk";
+import {
+  useStreamVideoClient,
+  StreamCall,
+  Call,
+} from "@stream-io/video-react-sdk";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -46,7 +50,7 @@ const PersonalRoomContent = ({
   const router = useRouter();
 
   return (
-    <Card className="max-w-[1000px]">
+    <Card className="max-w-[1200px]">
       <CardHeader>
         <CardTitle>Personal Meeting Room</CardTitle>
         <CardDescription>
@@ -55,7 +59,7 @@ const PersonalRoomContent = ({
       </CardHeader>
 
       <CardContent>
-        <div className="flex w-full flex-col gap-8 xl:max-w-[1400px]">
+        <div className="flex w-full flex-col gap-8">
           <Table title="Topic" description="Personal Meeting Room" />
           <Table title="Meeting ID" description={meetingId} />
           <Table title="Invite Link" description={meetingLink} />
@@ -86,7 +90,7 @@ const PersonalRoomContent = ({
 const PersonalRoom = () => {
   const { user } = useUser();
   const client = useStreamVideoClient();
-  const [call, setCall] = useState<any>(null);
+  const [call, setCall] = useState<Call>();
 
   const meetingId = user?.id;
   const meetingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${meetingId}?personal=true`;
@@ -112,7 +116,7 @@ const PersonalRoom = () => {
   if (!call) return <Loader />;
 
   return (
-    <section className="flex justify-center items-center min-h-dvh">
+    <section className="flex justify-center items-center p-10">
       <StreamCall call={call}>
         <PersonalRoomContent meetingId={meetingId!} meetingLink={meetingLink} />
       </StreamCall>
