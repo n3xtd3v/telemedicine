@@ -1,11 +1,11 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { useGetCalls } from "@/hooks/useGetCalls";
+import { UseNextUpcomingCall } from "@/hooks/use-upcoming-calls";
 import { useEffect, useState } from "react";
 
 export default function Upcoming() {
-  const { nextUpcoming, isLoading } = useGetCalls();
+  const { data: nextUpcoming, isLoading } = UseNextUpcomingCall();
   const [, setNow] = useState(new Date());
 
   useEffect(() => {

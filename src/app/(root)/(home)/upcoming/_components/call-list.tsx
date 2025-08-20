@@ -1,28 +1,36 @@
 "use client";
 
-import { useGetCalls } from "@/hooks/useGetCalls";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
-import { toast } from "sonner";
 import Loader from "@/components/loader";
 import MeetingCard from "./meeting-card";
 import { CalendarClock, CalendarSearch, Video, Play } from "lucide-react";
+import { UseUpcomingCalls } from "@/hooks/use-upcoming-calls";
+import { UseEndedCalls } from "@/hooks/use-ended-calls";
+import { UseCallRecordings } from "@/app/(root)/meeting/_components/use-call-recordings";
 
 const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
   const router = useRouter();
-  const { endedCalls, upcomingCalls, callRecordings, isLoading } =
-    useGetCalls();
-  const [recordings, setRecordings] = useState<CallRecording[]>([]);
+
+  const { data: upcomingCalls = [], isLoading: loadingUpcoming } =
+    UseUpcomingCalls({ enabled: type === "upcoming" });
+
+  const { data: endedCalls = [], isLoading: loadingEnded } = UseEndedCalls({
+    enabled: type === "ended",
+  });
+
+  const { data: callRecordings = [], isLoading: loadingRecordings } =
+    UseCallRecordings({ enabled: type === "recordings" });
+  const isLoading = loadingUpcoming || loadingEnded || loadingRecordings;
 
   const getCalls = () => {
     switch (type) {
       case "ended":
         return endedCalls;
-      case "recordings":
-        return recordings;
       case "upcoming":
         return upcomingCalls;
+      case "recordings":
+        return callRecordings;
       default:
         return [];
     }
@@ -41,33 +49,6 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
     }
   };
 
-  useEffect(() => {
-    const fetchRecordings = async () => {
-      try {
-        const callData = await Promise.all(
-          callRecordings?.map((meeting) => meeting.queryRecordings()) ?? []
-        );
-
-        const recordings = callData
-          .filter((call) => call.recordings.length > 0)
-          .flatMap((call) => call.recordings);
-
-        setRecordings(recordings);
-      } catch (error) {
-        console.log(error);
-
-        toast.error("Error", {
-          description: "Try again later! 😱",
-          id: "fetch-recordings",
-        });
-      }
-    };
-
-    if (type === "recordings") {
-      fetchRecordings();
-    }
-  }, [type, callRecordings]);
-
   if (isLoading) return <Loader />;
 
   const calls = getCalls();
@@ -75,7 +56,7 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      {calls && calls.length > 0 ? (
+      {calls.length > 0 ? (
         calls.map((meeting: Call | CallRecording, idx: number) => (
           <MeetingCard
             key={(meeting as Call).id || idx}
@@ -96,9 +77,7 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
                 ? "Scheduled meeting is about to start."
                 : type === "recordings"
                 ? "This meeting recording is ready to view."
-                : type === "ended"
-                ? "This meeting has passed its scheduled time, but you can still join."
-                : undefined
+                : "This meeting has passed its scheduled time."
             }
             date={
               (meeting as Call).state?.startsAt?.toLocaleString() ||

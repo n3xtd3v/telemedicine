@@ -56,7 +56,7 @@ export default function MeetingSetup({
           setIsSetupComplete(true);
         }}
       >
-        Join meeting
+        Join Meeting
       </Button>
     </section>
   );

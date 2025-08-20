@@ -12,7 +12,7 @@ export default function Page() {
 
       <MeetingTypeList />
 
-      <div className="flex flex-col gap-5 size-full p-2">
+      <div className="flex flex-col size-full p-2">
         <h1 className="text-3xl font-bold text-center p-10">
           <Upcoming />
         </h1>

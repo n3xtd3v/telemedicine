@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Toaster } from "@/components/ui/sonner";
 import RootProviders from "@/components/providers/root-providers";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,8 +21,6 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body className={`${inter.className} antialiased`}>
           <RootProviders>{children}</RootProviders>
-
-          <Toaster richColors position="bottom-right" />
         </body>
       </html>
     </ClerkProvider>
