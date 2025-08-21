@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import HomeCard from "./home-card";
 import {
   CalendarDays,
-  ChevronDownIcon,
+  CalendarIcon,
+  Loader,
   Plus,
   UserPlus,
   Video,
@@ -13,7 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import MeetingModal from "./meeting-modal";
 import { useUser } from "@clerk/nextjs";
-import { Call, useStreamVideoClient } from "@stream-io/video-react-sdk";
+import { useStreamVideoClient } from "@stream-io/video-react-sdk";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,55 +28,51 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { sendInviteEmail } from "@/lib/send-mail";
-import { useForm, Controller } from "react-hook-form";
-import { z } from "zod";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-const meetingSchema = z.object({
-  topic: z.string().min(1, "Topic is required"),
-  description: z.string().optional(),
-  invites: z
-    .array(
-      z.string().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email address")
-    )
-    .min(1, "At least one invite is required"),
-  link: z.string().optional(),
-  dateTime: z.date(),
-});
-type MeetingFormType = z.infer<typeof meetingSchema>;
+import { CreateMeetingSchema, CreateMeetingSchemaType } from "@/schemas";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { cn } from "@/lib/utils";
+import { startOfToday } from "date-fns";
 
 export default function MeetingTypeList() {
   const router = useRouter();
   const { user } = useUser();
   const client = useStreamVideoClient();
   const queryClient = useQueryClient();
-
   const [meeting, setMeeting] = useState<
     "isScheduledMeeting" | "isJoiningMeeting" | "isInstantMeeting" | undefined
   >();
-  const [open, setOpen] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  const { control, handleSubmit, setValue, watch, reset } =
-    useForm<MeetingFormType>({
-      resolver: zodResolver(meetingSchema),
-      defaultValues: {
-        topic: "",
-        description: "",
-        invites: [],
-        link: "",
-        dateTime: new Date(),
-      },
-    });
+  const form = useForm<CreateMeetingSchemaType>({
+    resolver: zodResolver(CreateMeetingSchema),
+    defaultValues: {
+      topic: "",
+      description: "",
+      invites: [],
+      dateTime: new Date(),
+      link: "",
+    },
+  });
 
-  const values = watch();
-  const [timeString, setTimeString] = useState(
-    values.dateTime.toTimeString().slice(0, 5)
-  );
+  const values = form.watch();
 
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     dateStyle: "full",
   }).format(values.dateTime);
+
+  const [timeString, setTimeString] = useState(
+    values.dateTime.toTimeString().slice(0, 5)
+  );
 
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const [hoursStr, minutesStr] = e.target.value.split(":");
@@ -88,23 +85,62 @@ export default function MeetingTypeList() {
     currentDate.setHours(hours);
     currentDate.setMinutes(minutes);
 
-    setValue("dateTime", currentDate);
+    form.setValue("dateTime", currentDate);
     setTimeString(e.target.value);
   };
 
-  // Mutation แบบ React Query
-  const createMeetingMutation = useMutation<
-    { call: Call; meetingType: string },
-    Error,
-    MeetingFormType & { meetingType: string }
-  >({
-    mutationFn: async (formValues) => {
-      if (!client || !user) throw new Error("No client or user");
+  const createIntantMeeting = async () => {
+    if (!client || !user) return;
+    try {
+      if (!values.dateTime) {
+        toast.error("Error", {
+          description: "Please select a date and time! 😱",
+          id: "create-intant-meeting",
+        });
+        return;
+      }
+
+      const id = crypto.randomUUID();
+      const call = client.call("default", id);
+
+      if (!call) throw new Error("Failed to create meeting! 😱");
+
+      const startsAt =
+        values.dateTime.toISOString() || new Date(Date.now()).toISOString();
+      const description = values.description || "Instant Meeting";
+
+      await call.getOrCreate({
+        data: {
+          starts_at: startsAt,
+          custom: {
+            description,
+          },
+        },
+      });
+
+      router.push(`/meeting/${call.id}`);
+
+      toast.success("Success", {
+        description: "Meeting Created. 🎉",
+        id: "create-intant-meeting",
+      });
+    } catch (error) {
+      console.log(error);
+      toast.error("Error", {
+        description: "Failed to create meeting! 😱",
+        id: "create-intant-meeting",
+      });
+    }
+  };
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: async (formValues: CreateMeetingSchemaType) => {
+      if (!client || !user) throw new Error("No client or user! 😱");
 
       const id = crypto.randomUUID();
       const startAt = formValues.dateTime.toISOString();
       const topic = `${formValues.topic} TeleMed Meeting`;
-      const description = formValues.description || "Instant meeting";
+      const description = formValues.description;
 
       const call = client.call("default", id);
       if (!call) throw new Error("Failed to create call! 😱");
@@ -112,11 +148,11 @@ export default function MeetingTypeList() {
       const res = await call.getOrCreate({
         data: {
           starts_at: startAt,
-          custom: { topic, description, invite: formValues.invites },
+          custom: { topic, description, invites: formValues.invites },
         },
       });
 
-      if (res.created && formValues.meetingType === "isScheduledMeeting") {
+      if (res.created) {
         sendInviteEmail({
           to: formValues.invites,
           topic: res.call.custom.topic,
@@ -125,25 +161,21 @@ export default function MeetingTypeList() {
           starts_at: new Date(`${res.call.starts_at}`),
         });
       }
-
-      return { call, meetingType: formValues.meetingType };
     },
-    onSuccess: ({ call, meetingType }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calls"] });
-      setMeeting(undefined);
-      reset();
-
-      if (meetingType === "isInstantMeeting") {
-        router.push(`/meeting/${call.id}`);
-      }
 
       toast.success("Success", {
         description: "Meeting created successfully. 🎉",
-        id: "create-meeting",
+        id: "create-room",
       });
+
+      setMeeting(undefined);
+
+      form.reset();
     },
-    onError: (err) => {
-      console.log(err);
+    onError: (error) => {
+      console.log(error);
       toast.error("Error", {
         description: "Failed to create meeting! 😱",
         id: "create-meeting",
@@ -151,8 +183,13 @@ export default function MeetingTypeList() {
     },
   });
 
-  const handleCreateMeeting = (formValues: MeetingFormType, type: string) => {
-    createMeetingMutation.mutate({ ...formValues, meetingType: type });
+  const onSubmit = (values: CreateMeetingSchemaType) => {
+    toast.loading("Loading", {
+      description: "Creating your meeting room… 😴",
+      id: "create-room",
+    });
+
+    mutate(values);
   };
 
   return (
@@ -182,109 +219,158 @@ export default function MeetingTypeList() {
         handleClick={() => setMeeting("isJoiningMeeting")}
       />
 
-      {/* Scheduled Meeting Modal */}
-      <MeetingModal
-        isOpen={meeting === "isScheduledMeeting"}
-        onClose={() => setMeeting(undefined)}
-        title="Create Meeting"
-        description="Plan your meeting details before starting."
-        handleClick={handleSubmit((formValues) =>
-          handleCreateMeeting(formValues, "isScheduledMeeting")
-        )}
-      >
-        <form className="flex flex-col gap-6">
-          <div className="grid gap-2">
-            <Label htmlFor="topic">Topic</Label>
-            <Controller
-              name="topic"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder={`${
-                    user?.fullName || user?.username
-                  } TeleMed Meeting`}
-                />
-              )}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Controller
-              name="description"
-              control={control}
-              render={({ field }) => (
-                <Textarea {...field} placeholder="Description" />
-              )}
-            />
-          </div>
-
-          <Controller
-            name="invites"
-            control={control}
-            render={({ field }) => (
-              <InviteInput emails={field.value} setEmails={field.onChange} />
-            )}
-          />
-
-          <div className="flex items-center gap-3">
-            <div className="grid gap-2 flex-1">
-              <Label htmlFor="date-picker">Date</Label>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" id="date-picker">
-                    {formattedDate}
-                    <ChevronDownIcon />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto overflow-hidden p-0"
-                  align="start"
-                >
-                  <Calendar
-                    mode="single"
-                    selected={values.dateTime}
-                    onSelect={(date) => {
-                      if (!date) return;
-                      const newDate = new Date(date);
-                      newDate.setHours(values.dateTime.getHours());
-                      newDate.setMinutes(values.dateTime.getMinutes());
-                      setValue("dateTime", newDate);
-                      setOpen(false);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="time-picker">Time</Label>
-              <Input
-                type="time"
-                id="time-picker"
-                step="300"
-                value={timeString}
-                onChange={handleTimeChange}
-              />
-            </div>
-          </div>
-        </form>
-      </MeetingModal>
-
-      {/* Instant Meeting Modal */}
       <MeetingModal
         isOpen={meeting === "isInstantMeeting"}
         onClose={() => setMeeting(undefined)}
         title="Start an Instant Meeting"
         description="Start your instant meeting now."
         buttonLabel="Start Meeting"
-        handleClick={handleSubmit((formValues) =>
-          handleCreateMeeting(formValues, "isInstantMeeting")
-        )}
+        handleClick={createIntantMeeting}
       />
 
-      {/* Join Meeting Modal */}
+      <MeetingModal
+        isOpen={meeting === "isScheduledMeeting"}
+        onClose={() => setMeeting(undefined)}
+        title="Create Meeting"
+        description="Plan your meeting details before starting."
+      >
+        <Form {...form}>
+          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+            <FormField
+              name="topic"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="topic">Topic</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      id="topic"
+                      name="topic"
+                      placeholder={`${
+                        user?.fullName || user?.username
+                      } TeleMed Meeting`}
+                      autoComplete="true"
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="description"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="description">Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      id="description"
+                      name="description"
+                      placeholder="description"
+                      autoComplete="true"
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="invites"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="invites">Invites</FormLabel>
+                  <FormControl>
+                    <InviteInput
+                      state={isPending}
+                      emails={field.value}
+                      setEmails={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-muted-foreground text-[14px]">
+                    Add multiple emails (press Enter, Tab, or comma). Click
+                    email to remove.
+                  </p>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex items-center justify-between gap-2">
+              <FormField
+                control={form.control}
+                name="dateTime"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>Date</FormLabel>
+                    <Popover
+                      open={isPopoverOpen}
+                      onOpenChange={setIsPopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className="pl-3 text-left font-normal"
+                          >
+                            {formattedDate}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-auto p-0 border-none rounded-none"
+                        align="start"
+                      >
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setIsPopoverOpen(false);
+                          }}
+                          disabled={(date) => date < startOfToday()}
+                          className="rounded-md border shadow-sm"
+                          captionLayout="dropdown"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="time-picker">Time</Label>
+                <Input
+                  type="time"
+                  id="time-picker"
+                  step="300"
+                  value={timeString}
+                  onChange={handleTimeChange}
+                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  disabled={isPending}
+                />
+              </div>
+            </div>
+
+            <Button className="w-full" type="submit">
+              {isPending ? (
+                <Loader className="animate-spin" />
+              ) : (
+                "Create Schedule Meeting"
+              )}
+            </Button>
+          </form>
+        </Form>
+      </MeetingModal>
+
       <MeetingModal
         isOpen={meeting === "isJoiningMeeting"}
         onClose={() => setMeeting(undefined)}
@@ -293,25 +379,36 @@ export default function MeetingTypeList() {
         buttonLabel="Join Meeting"
         handleClick={() => router.push(values.link || "")}
       >
-        <Controller
-          name="link"
-          control={control}
-          render={({ field }) => (
-            <Input placeholder="Meeting link" {...field} />
-          )}
-        />
+        <div className="grid gap-2">
+          <Label htmlFor="description">Link</Label>
+          <Controller
+            name="link"
+            control={form.control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                id="link"
+                name="link"
+                placeholder={`${
+                  process.env.NEXT_PUBLIC_BASE_URL
+                }/meeting/${crypto.randomUUID()}`}
+              />
+            )}
+          />
+        </div>
       </MeetingModal>
     </section>
   );
 }
 
-// InviteInput Component
 function InviteInput({
   emails,
   setEmails,
+  state,
 }: {
   emails: string[];
   setEmails: (emails: string[]) => void;
+  state: boolean;
 }) {
   const [inputValue, setInputValue] = useState("");
 
@@ -338,13 +435,12 @@ function InviteInput({
 
   return (
     <div className="grid gap-2">
-      <Label htmlFor="invite">Invite</Label>
       <div className="flex flex-wrap items-center gap-2 border rounded-md p-2 focus-within:ring-2 focus-within:ring-ring">
         {emails.map((email) => (
           <Badge
             key={email}
             variant="secondary"
-            className="flex items-center gap-1 cursor-auto"
+            className="flex items-center gap-1 cursor-pointer"
             onClick={() => removeEmail(email)}
           >
             {email}
@@ -352,17 +448,17 @@ function InviteInput({
           </Badge>
         ))}
         <Input
-          id="invite"
+          id="invites"
+          name="invites"
           className="border-0 shadow-none focus-visible:ring-0 p-2"
           placeholder="example@gmail.com"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          autoComplete="true"
+          disabled={state}
         />
       </div>
-      <p className="text-muted-foreground text-[14px]">
-        Add multiple emails (press Enter, Tab, or comma). Click email to remove.
-      </p>
     </div>
   );
 }

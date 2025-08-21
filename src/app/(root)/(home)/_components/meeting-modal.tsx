@@ -37,9 +37,11 @@ export default function MeetingModal({
         </DialogHeader>
         <div>{children}</div>
         <DialogFooter>
-          <Button type="button" onClick={handleClick} className="w-full">
-            {buttonLabel || "Schedule Meeting"}
-          </Button>
+          {title !== "Create Meeting" && (
+            <Button type="button" onClick={handleClick} className="w-full">
+              {buttonLabel}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Copy } from "lucide-react";
+import { Copy, Download } from "lucide-react";
 
 interface MeetingCardProps {
   topic: string;
@@ -23,7 +23,7 @@ interface MeetingCardProps {
   handleClick: () => void;
   description?: string;
   callDescription?: string;
-  invites: string;
+  invites: [];
 }
 
 const MeetingCard = ({
@@ -38,6 +38,27 @@ const MeetingCard = ({
   callDescription,
   invites,
 }: MeetingCardProps) => {
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(link);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `${topic || "recording"}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success("Download started");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download recording");
+    }
+  };
+
   return (
     <Card className="flex flex-col justify-between">
       <CardHeader>
@@ -56,7 +77,7 @@ const MeetingCard = ({
       <CardContent className="flex flex-col gap-1 break-words">
         <p className="font-medium">{topic}</p>
         <p className="text-muted-foreground">{callDescription}</p>
-        <p className="text-muted-foreground">{invites}</p>
+        <p className="text-muted-foreground">{invites?.join(", ")}</p>
       </CardContent>
 
       <CardFooter className="flex justify-end gap-2">
@@ -71,6 +92,11 @@ const MeetingCard = ({
         >
           <Copy /> Copy Link
         </Button>
+        {buttonText === "Play" && (
+          <Button onClick={handleDownload}>
+            <Download /> Download
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

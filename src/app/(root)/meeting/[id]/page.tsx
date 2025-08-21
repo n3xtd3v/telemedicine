@@ -8,6 +8,7 @@ import MeetingRoom from "../_components/meeting-room";
 import { useGetCallById } from "@/hooks/useGetCallById";
 import Loader from "@/components/loader";
 import { useTheme } from "next-themes";
+import Message from "../_components/message";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
@@ -15,8 +16,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const { call, isCallLoading } = useGetCallById(id);
   const { theme, setTheme } = useTheme();
-
   const [previousTheme, setPreviousTheme] = useState<string | undefined>();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!theme) return;
@@ -28,9 +33,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         setTheme(previousTheme);
       }
     };
-  }, [setTheme]);
+  }, [theme, setTheme, previousTheme]);
 
-  if (!isLoaded || isCallLoading) return <Loader />;
+  if (!mounted || !isLoaded || isCallLoading) return <Loader />;
+
+  if (call?.state.endedAt) return <Message />;
 
   return (
     <main className="w-full min-h-dvh">

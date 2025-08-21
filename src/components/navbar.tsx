@@ -15,6 +15,7 @@ import {
   CalendarSearch,
   Video,
   VenetianMask,
+  Stethoscope,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -62,7 +63,7 @@ export function Navbar() {
     <div className="flex items-center justify-between p-2">
       <div className="flex items-center">
         <Link href="/" className="flex gap-2">
-          <Video />
+          <Stethoscope />
           <span className="font-extrabold hidden lg:block">TeleMed</span>
         </Link>
       </div>
