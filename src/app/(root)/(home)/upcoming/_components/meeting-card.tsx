@@ -24,6 +24,7 @@ interface MeetingCardProps {
   description?: string;
   callDescription?: string;
   invites: [];
+  checkList: [];
 }
 
 const MeetingCard = ({
@@ -37,6 +38,7 @@ const MeetingCard = ({
   description,
   callDescription,
   invites,
+  checkList,
 }: MeetingCardProps) => {
   const handleDownload = async () => {
     try {
@@ -78,6 +80,7 @@ const MeetingCard = ({
         <p className="font-medium">{topic}</p>
         <p className="text-muted-foreground">{callDescription}</p>
         <p className="text-muted-foreground">{invites?.join(", ")}</p>
+        <p className="text-muted-foreground">{checkList?.join(", ")}</p>
       </CardContent>
 
       <CardFooter className="flex justify-end gap-2">

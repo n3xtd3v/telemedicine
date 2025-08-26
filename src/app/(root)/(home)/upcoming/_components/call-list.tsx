@@ -258,6 +258,7 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
         {calls.length > 0 ? (
           calls.map((meeting, idx) => {
             const isRecording = type === "recordings";
+
             return (
               <MeetingCard
                 key={(meeting as Call).id || idx}
@@ -300,6 +301,13 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
                     : `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${
                         (meeting as Call).id
                       }`
+                }
+                checkList={
+                  type === "upcoming"
+                    ? (meeting as Call).state?.custom?.checkList
+                    : type === "ended"
+                    ? (meeting as Call).state?.custom?.checkList
+                    : []
                 }
                 buttonIcon1={isRecording ? <Play /> : <Video />}
                 buttonText={isRecording ? "Play" : "Start"}
