@@ -37,7 +37,7 @@ type RecordingWithMeta = CallRecording & {
   topic: string;
   description?: string;
   invites?: string[];
-  startsAt?: Date;
+  startsAt: Date;
   url?: string;
 };
 
@@ -65,14 +65,6 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
   const client = useStreamVideoClient();
   const router = useRouter();
   const pathname = usePathname();
-
-  const renderDate = (meeting: Call | RecordingWithMeta) => {
-    const date =
-      (meeting as Call).state?.startsAt ||
-      (meeting as RecordingWithMeta).startsAt ||
-      new Date();
-    return format(date, "EEEE, MMM d, yyyy, hh:mm a");
-  };
 
   const { data: upcomingCalls = [], isLoading: loadingUpcoming } = useQuery({
     queryKey: ["calls", "upcoming", user?.id, selectedDate?.toISOString()],
@@ -312,7 +304,10 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
                     ? "This meeting recording is ready to view."
                     : "This meeting has passed its scheduled time."
                 }
-                date={renderDate(meeting)}
+                date={
+                  (meeting as Call).state?.startsAt ||
+                  (meeting as RecordingWithMeta).startsAt
+                }
                 isPreviousMeeting={type === "ended"}
                 bookingType={
                   (meeting as ExtendedCall).state?.custom.bookingType

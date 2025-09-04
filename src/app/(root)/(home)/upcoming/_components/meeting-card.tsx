@@ -14,7 +14,7 @@ import { Copy, Download } from "lucide-react";
 
 interface MeetingCardProps {
   topic: string;
-  date: string;
+  date: Date;
   buttonText?: string;
   link: string;
   isPreviousMeeting?: boolean;
@@ -67,12 +67,18 @@ const MeetingCard = ({
     <Card className="flex flex-col justify-between">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          {icon}
+          <span className="max-sm:hidden">{icon}</span>
 
           {new Intl.DateTimeFormat("en-US", {
-            timeStyle: "short",
-            dateStyle: "full",
-          }).format(new Date(date))}
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+            timeZone: "UTC",
+          }).format(date)}
         </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
