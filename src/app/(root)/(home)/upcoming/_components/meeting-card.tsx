@@ -23,14 +23,15 @@ interface MeetingCardProps {
   handleClick: () => void;
   description?: string;
   callDescription?: string;
-  invites: [];
-  checkList: [];
+  invites?: string[];
+  checkList?: string;
+  bookingType?: string;
 }
 
 const MeetingCard = ({
   icon,
-  topic,
   date,
+  topic,
   buttonIcon1,
   handleClick,
   link,
@@ -39,6 +40,7 @@ const MeetingCard = ({
   callDescription,
   invites,
   checkList,
+  bookingType,
 }: MeetingCardProps) => {
   const handleDownload = async () => {
     try {
@@ -65,7 +67,6 @@ const MeetingCard = ({
     <Card className="flex flex-col justify-between">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-<<<<<<< HEAD
           <span className="max-sm:hidden">{icon}</span>
 
           {new Intl.DateTimeFormat("en-US", {
@@ -78,24 +79,16 @@ const MeetingCard = ({
             hour12: true,
             timeZone: bookingType ? "UTC" : "Asia/Bangkok",
           }).format(date)}
-=======
-          {icon}
-          <p>
-            {new Intl.DateTimeFormat("en-US", {
-              timeStyle: "short",
-              dateStyle: "full",
-            }).format(new Date(date))}
-          </p>
->>>>>>> parent of ea8e711 (fix details)
         </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-1 break-words">
         <p className="font-medium">{topic}</p>
+        <p className="text-muted-foreground">{bookingType}</p>
         <p className="text-muted-foreground">{callDescription}</p>
         <p className="text-muted-foreground">{invites?.join(", ")}</p>
-        <p className="text-muted-foreground">{checkList?.join(", ")}</p>
+        <p className="text-muted-foreground">{checkList}</p>
       </CardContent>
 
       <CardFooter className="flex justify-end gap-2">
