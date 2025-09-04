@@ -34,28 +34,11 @@ import {
 } from "date-fns";
 
 type RecordingWithMeta = CallRecording & {
-  topic: string;
+  topic?: string;
   description?: string;
   invites?: string[];
   startsAt: Date;
   url?: string;
-};
-
-type ExtendedCall = Call & {
-  state: Call["state"] & {
-    custom?: {
-      appointmentDateTime: string;
-      bookingType: string;
-      checkList?: string[];
-      patientName: string;
-      clinician: string;
-      schEventId: string;
-      schEventStatus: string;
-      description?: string;
-      invites?: string[];
-      topoc?: string;
-    };
-  };
 };
 
 const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
@@ -270,7 +253,7 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
 
             return (
               <MeetingCard
-                key={(meeting as ExtendedCall).id || idx}
+                key={(meeting as Call).id || idx}
                 icon={
                   type === "ended" ? (
                     <CalendarSearch />
@@ -282,20 +265,18 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
                 }
                 topic={
                   isRecording
-                    ? (meeting as RecordingWithMeta).topic
-                    : (meeting as ExtendedCall).state?.custom.clinician ||
-                      (meeting as ExtendedCall).state?.custom.topic
+                    ? (meeting as RecordingWithMeta).topic ?? ""
+                    : (meeting as Call).state?.custom?.topic ?? ""
                 }
                 callDescription={
                   isRecording
                     ? (meeting as RecordingWithMeta).description
-                    : (meeting as ExtendedCall).state?.custom.patientName ||
-                      (meeting as ExtendedCall).state?.custom.description
+                    : (meeting as Call).state?.custom?.description
                 }
                 invites={
                   isRecording
                     ? (meeting as RecordingWithMeta).invites ?? []
-                    : (meeting as ExtendedCall).state?.custom.invites ?? []
+                    : (meeting as Call).state?.custom?.invites ?? []
                 }
                 description={
                   type === "upcoming"
@@ -309,9 +290,6 @@ const CallList = ({ type }: { type: "ended" | "upcoming" | "recordings" }) => {
                   (meeting as RecordingWithMeta).startsAt
                 }
                 isPreviousMeeting={type === "ended"}
-                bookingType={
-                  (meeting as ExtendedCall).state?.custom.bookingType
-                }
                 link={
                   isRecording
                     ? (meeting as RecordingWithMeta).url ?? "#"
