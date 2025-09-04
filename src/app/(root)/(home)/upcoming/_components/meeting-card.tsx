@@ -77,7 +77,7 @@ const MeetingCard = ({
             hour: "2-digit",
             minute: "2-digit",
             hour12: true,
-            timeZone: "UTC",
+            timeZone: bookingType ? "UTC" : "Asia/Bangkok",
           }).format(date)}
         </CardTitle>
         <CardDescription>{description}</CardDescription>

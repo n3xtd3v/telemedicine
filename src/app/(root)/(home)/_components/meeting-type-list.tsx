@@ -137,7 +137,7 @@ export default function MeetingTypeList() {
       if (!client || !user) throw new Error("No client or user! 😱");
 
       const id = crypto.randomUUID();
-      const startAt = formValues.dateTime.toISOString();
+      const startAt = formValues.dateTime;
       const topic = `${formValues.topic} TeleMed Meeting`;
       const description = formValues.description;
 
@@ -146,7 +146,7 @@ export default function MeetingTypeList() {
 
       const res = await call.getOrCreate({
         data: {
-          starts_at: startAt,
+          starts_at: new Date(startAt).toISOString(),
           custom: { topic, description, invites: formValues.invites },
         },
       });
